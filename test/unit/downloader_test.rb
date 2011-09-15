@@ -45,9 +45,9 @@ class DownloaderTest < Test::Unit::TestCase
 
   def unprocessed_transactions_page
     [
-      ["Aug 14, 2011", "Service Fees", "---", "Subscription", "$0.00", "$0.00", "$-39.99", "$0.00", "$-39.99"],
-      ["Jul 15, 2011", "Order Payment", "102-9177512-2257812", "Glass Paperweight", "$1.00", "$0.00", "$-0.82", "$4.49", "$4.67"],
-      ["Aug 2, 2011", "Other", "---", "Failed disbursement", "$0.00", "$0.00", "$0.00", "$4.67", "$4.67"]
+      ["Aug 14, 2011", "Service Fees", "---", "Subscription", "$0.00", "$0.00", "$-39.99", "$0.00", "$-39.99", "20112584sOVfVAGR3KeKzg-IOMFzg"],
+      ["Jul 15, 2011", "Order Payment", "102-9177512-2257812", "Glass Paperweight", "$1.00", "$0.00", "$-0.82", "$4.49", "$4.67", "20112584sOVfVAGR3KeKzg-IOMFzg1"],
+      ["Aug 2, 2011", "Other", "---", "Failed disbursement", "$0.00", "$0.00", "$0.00", "$4.67", "$4.67", "20112584sOVfVAGR3KeKzg-IOMFzg2"]
     ]
   end
 
@@ -58,6 +58,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Aug 14, 2011",
     "Total"=>-39.99,
     "Order ID"=>"---",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg",
     "Other"=>0.0,
     "Product Details"=>"Subscription",
     "Transaction type"=>"Service Fees"},
@@ -67,6 +68,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Jul 15, 2011",
     "Total"=>4.67,
     "Order ID"=>"102-9177512-2257812",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg1",
     "Other"=>4.49,
     "Product Details"=>"Glass Paperweight",
     "Transaction type"=>"Order Payment"},
@@ -76,6 +78,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Aug 2, 2011",
     "Total"=>4.67,
     "Order ID"=>"---",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg2",
     "Other"=>4.67,
     "Product Details"=>"Failed disbursement",
     "Transaction type"=>"Other"},
@@ -85,6 +88,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Aug 14, 2011",
     "Total"=>-39.99,
     "Order ID"=>"---",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg",
     "Other"=>0.0,
     "Product Details"=>"Subscription",
     "Transaction type"=>"Service Fees"},
@@ -94,6 +98,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Jul 15, 2011",
     "Total"=>4.67,
     "Order ID"=>"102-9177512-2257812",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg1",
     "Other"=>4.49,
     "Product Details"=>"Glass Paperweight",
     "Transaction type"=>"Order Payment"},
@@ -103,6 +108,7 @@ class DownloaderTest < Test::Unit::TestCase
     "Date"=>"Aug 2, 2011",
     "Total"=>4.67,
     "Order ID"=>"---",
+    "Transaction ID"=>"20112584sOVfVAGR3KeKzg-IOMFzg2",
     "Other"=>4.67,
     "Product Details"=>"Failed disbursement",
     "Transaction type"=>"Other"}]

@@ -57,16 +57,29 @@ module Amazon
       @parser = @agent.page.parser
       @parser.css('.list-row-odd').each_with_index do |lro,i|
         next if i == 0 || i == @parser.css('.list-row-odd').size-1
-        transaction = {}     
-        lro.css('.data-display-field').map { |dd| dd.text }  
+        transaction = lro.css('.data-display-field').map { |dd| dd.text }  
+        details_link = lro.css('a').attribute('href').value
+        transaction << details_link
+        transaction << CGI.parse(details_link)["transaction_id"].first
+
         unprocessed_transactions_page << transaction
       end
       @parser.css('.list-row-even').each do |lre|
-        transaction = {}     
-        lro.css('.data-display-field').map { |dd| dd.text }  
+        transaction = lre.css('.data-display-field').map { |dd| dd.text }  
+        details_link = lre.css('a').attribute('href').value
+        transaction << details_link
+        transaction << CGI.parse(details_link)["transaction_id"].first
         unprocessed_transactions_page << transaction
       end
       unprocessed_transactions_page
+    end
+
+    def order_details(order_number = '102-9177512-2257812')
+      if order_number != '---'
+        @agent.get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
+        order_parser = @agent.page.parser
+        payee_name = order_parser.css('td.data-display-field>a').text
+      end
     end
 
     def process_transactions(unprocessed_transactions)
@@ -81,6 +94,8 @@ module Amazon
           "Amazon fees" => format_money(ut[6]),
           "Other" => format_money(ut[7]),
           "Total" => format_money(ut[8]),
+          "Details Link" => ut[9],
+          "Transaction ID" => ut[10],
         }
       end
     end
