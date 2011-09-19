@@ -1,14 +1,17 @@
 module Amazon
   class Downloader
+    POLITE_GET_TIMER = 1
+
     attr_accessor :agent
 
     def initialize(email, password)
       @agent = Mechanize.new
+      @time = Time.now
       login(email, password)
     end
 
     def account_balance
-      @agent.get("https://sellercentral.amazon.com/gp/payments-account/settlement-summary.html")
+      agent_polite_get("https://sellercentral.amazon.com/gp/payments-account/settlement-summary.html")
       format_money(@agent.page.parser.css('#account_summary_balance_display > td')[1].text)
     end
 
@@ -27,7 +30,7 @@ module Amazon
     protected
 
     def login(email, password)
-      @agent.get("https://sellercentral.amazon.com/gp/homepage.html")
+      agent_polite_get("https://sellercentral.amazon.com/gp/homepage.html")
       form = @agent.page.forms.first
       form.email = email
       form.password = password
@@ -35,7 +38,7 @@ module Amazon
     end
 
     def transactions_page(start_date = nil, end_date = nil)
-      @agent.get("https://sellercentral.amazon.com/gp/payments-account/view-transactions.html?ie=UTF8&pageSize=Ten&subview=dateRange&mostRecentLast=0&view=filter")
+      agent_polite_get("https://sellercentral.amazon.com/gp/payments-account/view-transactions.html?ie=UTF8&pageSize=Ten&subview=dateRange&mostRecentLast=0&view=filter")
       form = @agent.page.forms[1]
       form.startDate = format_date(start_date) || form.startDate
       form.endDate = format_date(end_date) || form.endDate
@@ -80,7 +83,7 @@ module Amazon
     def order_details(order_number = '102-9177512-2257812')
       details = {}
       if order_number != '---'
-        @agent.get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
+        agent_polite_get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
         order_parser = @agent.page.parser
         buyer_name = order_parser.css('td.data-display-field>a').text
         details["Buyer Name"] = buyer_name
@@ -112,6 +115,14 @@ module Amazon
 
     def format_date(date)
       date.strftime("%D")
+    end
+
+    def agent_polite_get(url)
+      if (Time.now - @time) < POLITE_GET_TIMER
+        sleep (Time.now - @time)
+      end
+      @agent.get(url)
+      @time = Time.now
     end
   end
 end
