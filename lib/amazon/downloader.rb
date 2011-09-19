@@ -16,12 +16,11 @@ module Amazon
       transactions_page(start_date, end_date)
       unprocessed_transactions = []
       unprocessed_transactions_page = extract_from_transactions_page
-      while !unprocessed_transactions_page.empty?
+      while next_transactions_page
         unprocessed_transactions.concat(unprocessed_transactions_page)
-        next_transactions_page
         unprocessed_transactions_page = extract_from_transactions_page
       end
-      unprocessed_transactions
+      unprocessed_transactions.concat(unprocessed_transactions_page)
       process_transactions(unprocessed_transactions)
     end
 
@@ -38,10 +37,10 @@ module Amazon
     def transactions_page(start_date = nil, end_date = nil)
       @agent.get("https://sellercentral.amazon.com/gp/payments-account/view-transactions.html?ie=UTF8&pageSize=Ten&subview=dateRange&mostRecentLast=0&view=filter")
       form = @agent.page.forms[1]
-      form.startDate = start_date || '9/1/10' || form.startDate
-      form.endDate = end_date || '9/15/11' || form.endDate
+      form.startDate = format_date(start_date) || form.startDate
+      form.endDate = format_date(end_date) || form.endDate
       form.eventType = ''
-      form.pageSize = 'One'
+      form.pageSize = 'Fifty'
       form.submit
     end
 
@@ -49,7 +48,11 @@ module Amazon
       @parser = @agent.page.parser
       last_lro = @parser.css('.list-row-odd').last
       next_page_link = last_lro.css('a').last
-      @agent.click(next_page_link)
+      if next_page_link && next_page_link.text == "Next"
+        @agent.click(next_page_link)
+      else
+        return false
+      end
     end
 
     def extract_from_transactions_page
@@ -57,33 +60,36 @@ module Amazon
       @parser = @agent.page.parser
       @parser.css('.list-row-odd').each_with_index do |lro,i|
         next if i == 0 || i == @parser.css('.list-row-odd').size-1
-        transaction = lro.css('.data-display-field').map { |dd| dd.text }  
-        details_link = lro.css('a').attribute('href').value
-        transaction << details_link
-        transaction << CGI.parse(details_link)["transaction_id"].first
-
+        transaction = extract_values_from_list_row(lro)
         unprocessed_transactions_page << transaction
       end
       @parser.css('.list-row-even').each do |lre|
-        transaction = lre.css('.data-display-field').map { |dd| dd.text }  
-        details_link = lre.css('a').attribute('href').value
-        transaction << details_link
-        transaction << CGI.parse(details_link)["transaction_id"].first
+        transaction = extract_values_from_list_row(lre)
         unprocessed_transactions_page << transaction
       end
       unprocessed_transactions_page
     end
 
+    def extract_values_from_list_row(lr)
+      transaction = lr.css('.data-display-field').map { |dd| dd.text }  
+      details_link = lr.css('a').attribute('href').value
+      transaction << details_link
+      transaction << CGI.parse(details_link)["transaction_id"].first
+    end
+
     def order_details(order_number = '102-9177512-2257812')
+      details = {}
       if order_number != '---'
         @agent.get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
         order_parser = @agent.page.parser
-        payee_name = order_parser.css('td.data-display-field>a').text
+        buyer_name = order_parser.css('td.data-display-field>a').text
+        details["Buyer Name"] = buyer_name
       end
+      details
     end
 
     def process_transactions(unprocessed_transactions)
-      unprocessed_transactions.map do |ut|
+      processed_transactions = unprocessed_transactions.map do |ut|
         {
           "Date" => ut[0],
           "Transaction type" => ut[1],
@@ -96,7 +102,7 @@ module Amazon
           "Total" => format_money(ut[8]),
           "Details Link" => ut[9],
           "Transaction ID" => ut[10],
-        }
+        }.merge(order_details(ut[2]))
       end
     end
 
@@ -105,9 +111,7 @@ module Amazon
     end
 
     def format_date(date)
-      return "" if date.nil?
-      parsed_date = Date.parse(date)
-      "#{parsed_date.year}-#{parsed_date.month}-#{parsed_date.day}"
+      date.strftime("%D")
     end
   end
 end
