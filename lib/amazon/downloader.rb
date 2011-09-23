@@ -1,6 +1,7 @@
 module Amazon
   class Downloader
     POLITE_GET_TIMER = 1
+    POSSIBLE_TRANSACTION_FIELDS = ["Date", "Transaction type", "Order ID", "Product Details", "Total product charges", "Total promotional rebates", "Amazon fees", "Other", "Total"]
 
     attr_accessor :agent
 
@@ -17,14 +18,11 @@ module Amazon
 
     def transactions(start_date=nil, end_date=nil)
       transactions_page(start_date, end_date)
-      unprocessed_transactions = []
-      unprocessed_transactions_page = extract_from_transactions_page
+      processed_transactions = []
       while next_transactions_page
-        unprocessed_transactions.concat(unprocessed_transactions_page)
-        unprocessed_transactions_page = extract_from_transactions_page
+        processed_transactions.concat(process_transactions(extract_from_transactions_page))
       end
-      unprocessed_transactions.concat(unprocessed_transactions_page)
-      process_transactions(unprocessed_transactions)
+      processed_transactions.concat(process_transactions(extract_from_transactions_page))
     end
 
     protected
@@ -39,7 +37,7 @@ module Amazon
 
     def transactions_page(start_date = nil, end_date = nil)
       agent_polite_get("https://sellercentral.amazon.com/gp/payments-account/view-transactions.html?ie=UTF8&pageSize=Ten&subview=dateRange&mostRecentLast=0&view=filter")
-      form = @agent.page.forms[1]
+      form = @agent.page.forms.select {|f| f.texts.detect {|t| t.name == "startDate"} }.first
       form.startDate = format_date(start_date) || form.startDate
       form.endDate = format_date(end_date) || form.endDate
       form.eventType = ''
@@ -63,21 +61,34 @@ module Amazon
       @parser = @agent.page.parser
       @parser.css('.list-row-odd').each_with_index do |lro,i|
         next if i == 0 || i == @parser.css('.list-row-odd').size-1
-        transaction = extract_values_from_list_row(lro)
+        transaction = extract_values_from_list_row(lro).concat(extract_transaction_details(lro))
         unprocessed_transactions_page << transaction
       end
       @parser.css('.list-row-even').each do |lre|
-        transaction = extract_values_from_list_row(lre)
+        transaction = extract_values_from_list_row(lre).concat(extract_transaction_details(lre))
         unprocessed_transactions_page << transaction
       end
       unprocessed_transactions_page
     end
 
+    def extract_field_names
+      @parser = @agent.page.parser
+      lrw = @parser.css('.list-row-white').first
+      extracted_field_names = lrw.css('.data-display-field').map { |dd| dd.text.strip } 
+      POSSIBLE_TRANSACTION_FIELDS.select {|field_name| extracted_field_names.detect {|efn| efn.include?(field_name)} }
+    end
+
+    def transaction_detail_fields
+      ["Details Link", "Transaction ID"]
+    end
+
     def extract_values_from_list_row(lr)
       transaction = lr.css('.data-display-field').map { |dd| dd.text }  
+    end
+
+    def extract_transaction_details(lr)
       details_link = lr.css('a').attribute('href').value
-      transaction << details_link
-      transaction << CGI.parse(details_link)["transaction_id"].first
+      [details_link, CGI.parse(details_link)["transaction_id"].first]
     end
 
     def order_details(order_number = '102-9177512-2257812')
@@ -87,26 +98,21 @@ module Amazon
         order_parser = @agent.page.parser
         buyer_name = order_parser.css('td.data-display-field>a').text
         details["Buyer Name"] = buyer_name
+        @agent.back
       end
       details
     end
 
     def process_transactions(unprocessed_transactions)
-      processed_transactions = unprocessed_transactions.map do |ut|
-        {
-          "Date" => ut[0],
-          "Transaction type" => ut[1],
-          "Order ID" => ut[2],
-          "Product Details" => ut[3],
-          "Total product charges" => format_money(ut[4]),
-          "Total promotional rebates" => format_money(ut[5]),
-          "Amazon fees" => format_money(ut[6]),
-          "Other" => format_money(ut[7]),
-          "Total" => format_money(ut[8]),
-          "Details Link" => ut[9],
-          "Transaction ID" => ut[10],
-        }.merge(order_details(ut[2]))
+      field_names = extract_field_names.concat(transaction_detail_fields)
+      processed_transactions = []
+      unprocessed_transactions.each do |ut|
+        processed_transaction = {}
+        field_names.each_with_index {|fn, i| processed_transaction[fn] = ut[i]}
+        processed_transaction.merge(order_details(processed_transaction["Order ID"]))
+        processed_transactions << processed_transaction
       end
+      processed_transactions
     end
 
     def format_money(amount)
