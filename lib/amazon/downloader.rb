@@ -91,12 +91,12 @@ module Amazon
       [details_link, CGI.parse(details_link)["transaction_id"].first]
     end
 
-    def order_details(order_number = '102-9177512-2257812')
+    def order_details(order_number)
       details = {}
       if order_number != '---'
         agent_polite_get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
         order_parser = @agent.page.parser
-        buyer_name = order_parser.css('td.data-display-field>a').text
+        buyer_name = order_parser.css('td.data-display-field>a').first.text
         details["Buyer Name"] = buyer_name
         @agent.back
       end
@@ -108,15 +108,16 @@ module Amazon
       processed_transactions = []
       unprocessed_transactions.each do |ut|
         processed_transaction = {}
-        field_names.each_with_index {|fn, i| processed_transaction[fn] = ut[i]}
-        processed_transaction.merge(order_details(processed_transaction["Order ID"]))
+        field_names.each_with_index {|fn, i| processed_transaction[fn] = format_money(ut[i])}
+        processed_transaction.merge!(order_details(processed_transaction["Order ID"]))
         processed_transactions << processed_transaction
       end
       processed_transactions
     end
 
     def format_money(amount)
-      amount[1..-1].gsub(',','').to_f
+      amount = amount[1..-1].gsub(',','').to_f if amount && amount[0..0] == '$'
+      amount
     end
 
     def format_date(date)

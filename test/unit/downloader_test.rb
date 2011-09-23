@@ -33,7 +33,8 @@ class DownloaderTest < Test::Unit::TestCase
       Amazon::Downloader.any_instance.stubs(:transactions_page)
       Amazon::Downloader.any_instance.stubs(:next_transactions_page).returns(true).returns(false)
       Amazon::Downloader.any_instance.stubs(:extract_from_transactions_page).returns(unprocessed_transactions_page).returns(unprocessed_transactions_page).returns([])
-      Amazon::Downloader.any_instance.stubs(:extract_field_names).returns(["Date", "Transaction type", "Order ID", "Product Details", "Total product charges", "Total promotional rebates", "Amazon fees", "Other", "Total"])
+      Amazon::Downloader.any_instance.stubs(:extract_field_names).returns(["Date", "Transaction type", "Order ID", "Product Details", "Total product charges", "Total promotional rebates", "Amazon fees", "Other", "Total", "Details Link", "Transaction ID"])
+      Amazon::Downloader.any_instance.stubs(:transaction_detail_fields).returns([])
       Amazon::Downloader.any_instance.stubs(:order_details).returns({"Buyer Name" => "Jeff Bezos"})
 
       @downloader = Amazon::Downloader.new(@email, @password)
