@@ -1,3 +1,5 @@
+class AuthenticationError < StandardError; end;
+
 module Amazon
   class Downloader
     POLITE_GET_TIMER = 1
@@ -33,6 +35,7 @@ module Amazon
       form.email = email
       form.password = password
       form.submit
+      raise AuthenticationError.new if @agent.page.parser.css(".messageboxerror")
     end
 
     def transactions_page(start_date = nil, end_date = nil)
@@ -133,3 +136,4 @@ module Amazon
     end
   end
 end
+
