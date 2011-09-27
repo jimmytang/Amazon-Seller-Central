@@ -35,7 +35,7 @@ module Amazon
       form.email = email
       form.password = password
       form.submit
-      raise AuthenticationError.new if @agent.page.parser.css(".messageboxerror")
+      raise AuthenticationError.new unless @agent.page.parser.css(".messageboxerror").empty?
     end
 
     def transactions_page(start_date = nil, end_date = nil)
