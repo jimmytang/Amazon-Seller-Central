@@ -35,7 +35,7 @@ module Amazon
       form.email = email
       form.password = password
       form.submit
-      raise AuthenticationError.new unless @agent.page.parser.css(".messageboxerror").empty?
+      raise AuthenticationError.new unless @agent.page.parser.css(".messageboxerror").empty? || @agent.page.parser.css('.tiny').text.include?('Sorry, you are not an authorized Seller Central user')
     end
 
     def transactions_page(start_date = nil, end_date = nil)
