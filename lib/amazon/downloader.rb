@@ -9,6 +9,7 @@ module Amazon
 
     def initialize(email, password)
       @agent = Mechanize.new
+      @agent.redirect_ok = false
       @time = Time.now
       login(email, password)
     end
@@ -99,7 +100,7 @@ module Amazon
       if order_number != '---'
         agent_polite_get("https://sellercentral.amazon.com/gp/orders-v2/details?ie=UTF8&orderID=#{order_number}")
         order_parser = @agent.page.parser
-        buyer_name = order_parser.css('td.data-display-field>a').first.text
+        buyer_name = order_parser.css('td.data-display-field>a').first.andand.text
         details["Buyer Name"] = buyer_name
         @agent.back
       end

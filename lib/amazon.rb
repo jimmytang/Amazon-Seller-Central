@@ -4,4 +4,3 @@ require 'mechanize'
 require 'cgi'
 require 'date'
 require 'amazon/downloader'
-
